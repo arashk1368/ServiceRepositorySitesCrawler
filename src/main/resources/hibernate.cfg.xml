@@ -7,7 +7,7 @@
     <property name="hibernate.connection.url">jdbc:mysql://localhost:3306/servicerepository?zeroDateTimeBehavior=convertToNull</property>
     <property name="hibernate.connection.username">root</property>
     <property name="hibernate.connection.password">1234</property>
-    <property name="hibernate.hbm2ddl.auto">create</property>
+    <!--<property name="hibernate.hbm2ddl.auto">create</property>-->
     <mapping class="cloudservices.brokerage.crawler.crawlingcommons.model.entities.WSDL"/>
     <mapping class="cloudservices.brokerage.crawler.crawlingcommons.model.entities.Seed"/>
   </session-factory>
