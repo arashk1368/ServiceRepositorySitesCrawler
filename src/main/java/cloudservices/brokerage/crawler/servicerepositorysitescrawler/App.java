@@ -49,8 +49,10 @@ public class App {
             LOGGER.log(Level.SEVERE, "Searching End in {0}ms", totalTime);
             LOGGER.log(Level.SEVERE, "Total Results Found from Service Repository Site: {0}", finderSR.getTotalResultsNum());
             LOGGER.log(Level.SEVERE, "Total WSDL Saved from Service Repository Site: {0}", finderSR.getSavedResultsNum());
+            LOGGER.log(Level.SEVERE, "Total WSDL Modified from Service Repository Site: {0}", finderSR.getModifiedResultsNum());
             LOGGER.log(Level.SEVERE, "Total Results Found from XMethods Site: {0}", finderXM.getTotalResultsNum());
             LOGGER.log(Level.SEVERE, "Total WSDL Saved from XMethods Site: {0}", finderXM.getSavedResultsNum());
+            LOGGER.log(Level.SEVERE, "Total WSDL Modified from XMethods Site: {0}", finderXM.getModifiedResultsNum());
         }
     }
 }
