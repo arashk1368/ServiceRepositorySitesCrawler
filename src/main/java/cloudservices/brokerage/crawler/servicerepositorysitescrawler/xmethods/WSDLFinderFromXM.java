@@ -96,7 +96,7 @@ public class WSDLFinderFromXM {
         if (desc.isEmpty()) {
             LOGGER.log(Level.INFO, "Info page for page = {0} does not contain description", pageUrl);
         }
-        return new WSDL(title, url, desc);
+        return new WSDL(url, title, desc);
     }
 
     private boolean addWSDL(WSDL wsdl) throws DAOException {

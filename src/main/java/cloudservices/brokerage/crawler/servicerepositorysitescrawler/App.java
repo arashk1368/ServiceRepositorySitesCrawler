@@ -38,7 +38,7 @@ public class App {
             configuration.configure("hibernate.cfg.xml");
             BaseDAO.openSession(configuration);
 
-//            finderSR.start("?offset=0&max=10000");
+            finderSR.start("?offset=0&max=10000");
             finderXM.start("");
         } catch (DAOException | IOException ex) {
             LOGGER.log(Level.SEVERE, ex.getMessage(), ex);
