@@ -7,6 +7,7 @@ package cloudservices.brokerage.crawler.servicerepositorysitescrawler.servicerep
 import cloudservices.brokerage.crawler.crawlingcommons.model.DAO.DAOException;
 import cloudservices.brokerage.crawler.crawlingcommons.model.DAO.WSDLDAO;
 import cloudservices.brokerage.crawler.crawlingcommons.model.entities.WSDL;
+import cloudservices.brokerage.crawler.crawlingcommons.model.enums.WSDLColType;
 import cloudservices.brokerage.crawler.servicerepositorysitescrawler.utils.DocumentLoader;
 import java.io.IOException;
 import java.util.logging.Level;
@@ -27,6 +28,7 @@ public class WSDLFinderFromSR {
     private long modifiedResultsNum;
     private WSDLDAO wsdlDAO;
     private String userAgent;
+    private final static String TOKEN = ";;;";
     private final static String CHARSET = "UTF-8";
     private final static String DOMAIN = "http://www.service-repository.com/";
     private final static Logger LOGGER = Logger.getLogger(WSDLFinderFromSR.class.getName());
@@ -62,7 +64,8 @@ public class WSDLFinderFromSR {
                     WSDL wsdl = getInfoPage(pageUrl);
                     if (wsdl != null) {
                         if (checkWSDL(wsdl)) {
-                            addWSDL(wsdl);
+                            wsdl.setQuery("Service-Repository");
+                            addOrUpdateWSDL(wsdl);
 
                         }
                     }
@@ -102,10 +105,10 @@ public class WSDLFinderFromSR {
         if (desc.isEmpty()) {
             LOGGER.log(Level.INFO, "Info page for page = {0} does not contain description", pageUrl);
         }
-        return new WSDL(url,title, desc);
+        return new WSDL(url, title, desc);
     }
 
-    private boolean addWSDL(WSDL wsdl) throws DAOException {
+    private boolean addOrUpdateWSDL(WSDL wsdl) throws DAOException {
         WSDL indb = wsdlDAO.find(wsdl.getUrl());
         if (indb == null) {
             wsdlDAO.addWSDL(wsdl);
@@ -115,22 +118,43 @@ public class WSDLFinderFromSR {
         } else {
             boolean modified = false;
             if (indb.getDescription().compareTo(wsdl.getDescription()) != 0) {
-                indb.setDescription(indb.getDescription().concat(";;;").concat(wsdl.getDescription()));
-                wsdlDAO.saveOrUpdate(indb);
-                LOGGER.log(Level.INFO, "Description for WSDL with url = {0} updated to {1}", new Object[]{indb.getUrl(), indb.getDescription()});
-                modified = true;
+                String newDesc = indb.getDescription().concat(TOKEN).concat(wsdl.getDescription());
+                if (WSDL.checkLength(newDesc.length(), WSDLColType.DESCRIPTION)) {
+                    indb.setDescription(newDesc);
+                    wsdlDAO.saveOrUpdate(indb);
+                    LOGGER.log(Level.INFO, "Description for WSDL with url = {0} updated to {1}", new Object[]{indb.getUrl(), indb.getDescription()});
+                    modified = true;
+                } else {
+                    LOGGER.log(Level.INFO, "Description for WSDL with url = {0} can not be updated because it is too large!", indb.getUrl());
+                }
             }
             if (indb.getTitle().compareTo(wsdl.getTitle()) != 0) {
-                indb.setTitle(indb.getTitle().concat(";;;").concat(wsdl.getTitle()));
-                wsdlDAO.saveOrUpdate(indb);
-                LOGGER.log(Level.INFO, "Title for WSDL with url = {0} updated to {1}", new Object[]{indb.getUrl(), indb.getTitle()});
-                modified = true;
+                String newTitle = indb.getTitle().concat(TOKEN).concat(wsdl.getTitle());
+                if (WSDL.checkLength(newTitle.length(), WSDLColType.TITLE)) {
+                    indb.setTitle(newTitle);
+                    wsdlDAO.saveOrUpdate(indb);
+                    LOGGER.log(Level.INFO, "Title for WSDL with url = {0} updated to {1}", new Object[]{indb.getUrl(), indb.getTitle()});
+                    modified = true;
+                } else {
+                    LOGGER.log(Level.INFO, "Title for WSDL with url = {0} can not be updated because it is too large!", indb.getUrl());
+                }
+            }
+            if (indb.getQuery().compareTo(wsdl.getQuery()) != 0) {
+                String newQuery = indb.getQuery().concat(TOKEN).concat(wsdl.getQuery());
+                if (WSDL.checkLength(newQuery.length(), WSDLColType.SEARCHED_QUERY)) {
+                    indb.setQuery(newQuery);
+                    wsdlDAO.saveOrUpdate(indb);
+                    LOGGER.log(Level.INFO, "Query for WSDL with url = {0} updated to {1}", new Object[]{indb.getUrl(), indb.getQuery()});
+                    modified = true;
+                } else {
+                    LOGGER.log(Level.INFO, "Query for WSDL with url = {0} can not be updated because it is too large!", indb.getUrl());
+                }
             }
             if (modified) {
                 this.modifiedResultsNum++;
                 return true;
             } else {
-                LOGGER.log(Level.INFO, "WSDL with url ={0} already exists with the same description and title", wsdl.getUrl());
+                LOGGER.log(Level.INFO, "WSDL with url ={0} already exists with the same properties or could not be updated", wsdl.getUrl());
                 return false;
             }
         }
