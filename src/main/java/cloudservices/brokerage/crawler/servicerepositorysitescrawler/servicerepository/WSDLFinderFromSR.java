@@ -117,7 +117,7 @@ public class WSDLFinderFromSR {
             return true;
         } else {
             boolean modified = false;
-            if (indb.getDescription().compareTo(wsdl.getDescription()) != 0) {
+            if (!indb.getDescription().contains(wsdl.getDescription())) {
                 String newDesc = indb.getDescription().concat(TOKEN).concat(wsdl.getDescription());
                 if (WSDL.checkLength(newDesc.length(), WSDLColType.DESCRIPTION)) {
                     indb.setDescription(newDesc);
@@ -128,7 +128,7 @@ public class WSDLFinderFromSR {
                     LOGGER.log(Level.INFO, "Description for WSDL with url = {0} can not be updated because it is too large!", indb.getUrl());
                 }
             }
-            if (indb.getTitle().compareTo(wsdl.getTitle()) != 0) {
+            if (!indb.getTitle().contains(wsdl.getTitle())) {
                 String newTitle = indb.getTitle().concat(TOKEN).concat(wsdl.getTitle());
                 if (WSDL.checkLength(newTitle.length(), WSDLColType.TITLE)) {
                     indb.setTitle(newTitle);
@@ -139,7 +139,7 @@ public class WSDLFinderFromSR {
                     LOGGER.log(Level.INFO, "Title for WSDL with url = {0} can not be updated because it is too large!", indb.getUrl());
                 }
             }
-            if (indb.getQuery().compareTo(wsdl.getQuery()) != 0) {
+            if (!indb.getQuery().contains(wsdl.getQuery())) {
                 String newQuery = indb.getQuery().concat(TOKEN).concat(wsdl.getQuery());
                 if (WSDL.checkLength(newQuery.length(), WSDLColType.SEARCHED_QUERY)) {
                     indb.setQuery(newQuery);
