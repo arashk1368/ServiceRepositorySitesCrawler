@@ -1,11 +1,17 @@
 package cloudservices.brokerage.crawler.servicerepositorysitescrawler;
 
+import cloudservices.brokerage.commons.utils.file_utils.DirectoryUtil;
 import cloudservices.brokerage.commons.utils.logging.LoggerSetup;
 import cloudservices.brokerage.crawler.crawlingcommons.model.DAO.BaseDAO;
 import cloudservices.brokerage.crawler.crawlingcommons.model.DAO.DAOException;
+import cloudservices.brokerage.crawler.crawlingcommons.model.enums.v3.ServiceDescriptionType;
+import cloudservices.brokerage.crawler.servicerepositorysitescrawler.programmableweb.ServiceFinderFromPW;
 import cloudservices.brokerage.crawler.servicerepositorysitescrawler.servicerepository.WSDLFinderFromSR;
 import cloudservices.brokerage.crawler.servicerepositorysitescrawler.xmethods.WSDLFinderFromXM;
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.hibernate.cfg.Configuration;
@@ -17,29 +23,26 @@ import org.hibernate.cfg.Configuration;
 public class App {
 
     private final static Logger LOGGER = Logger.getLogger(App.class.getName());
-    private final static String USER_AGENT = "Mozilla/5.0 (Windows NT 6.1; WOW64) "
-            + "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.114 Safari/537.36";
+    private final static String USER_AGENT = "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36"
+            + " (KHTML, like Gecko) Chrome/41.0.2227.0 Safari/537.36";
     private final static long POLITENESS_DELAY = 500; //ms
+    private static WSDLFinderFromXM finderXM;
+    private static WSDLFinderFromSR finderSR;
+    private static ServiceFinderFromPW finderPW;
 
     public static void main(String[] args) {
-        try {
-            LoggerSetup.setup("log.txt", "log.html", Level.INFO);
-        } catch (IOException e) {
-            throw new RuntimeException("Problems with creating the log files");
-        }
+        createLogFile();
+//        createNewDB();
 
         long startTime = System.currentTimeMillis();
         LOGGER.log(Level.SEVERE, "Searching Start");
-        WSDLFinderFromSR finderSR = new WSDLFinderFromSR(POLITENESS_DELAY, USER_AGENT);
-        WSDLFinderFromXM finderXM = new WSDLFinderFromXM(POLITENESS_DELAY, USER_AGENT);
+        finderSR = new WSDLFinderFromSR(POLITENESS_DELAY, USER_AGENT);
+        finderXM = new WSDLFinderFromXM(POLITENESS_DELAY, USER_AGENT);
+        finderPW = new ServiceFinderFromPW(POLITENESS_DELAY, USER_AGENT);
 
         try {
-            Configuration configuration = new Configuration();
-            configuration.configure("hibernate.cfg.xml");
-            BaseDAO.openSession(configuration);
-
-            finderSR.start("?offset=0&max=10000");
-            finderXM.start("");
+//            SearchFromSRXM();
+            SearchFromPW();
         } catch (DAOException | IOException ex) {
             LOGGER.log(Level.SEVERE, ex.getMessage(), ex);
         } finally {
@@ -53,6 +56,60 @@ public class App {
             LOGGER.log(Level.SEVERE, "Total Results Found from XMethods Site: {0}", finderXM.getTotalResultsNum());
             LOGGER.log(Level.SEVERE, "Total WSDL Saved from XMethods Site: {0}", finderXM.getSavedResultsNum());
             LOGGER.log(Level.SEVERE, "Total WSDL Modified from XMethods Site: {0}", finderXM.getModifiedResultsNum());
+            LOGGER.log(Level.SEVERE, "Total Results Found from ProgrammableWeb Site: {0}", finderPW.getTotalResultsNum());
+            LOGGER.log(Level.SEVERE, "Total Services Saved from ProgrammableWeb Site: {0}", finderPW.getSavedResultsNum());
+            LOGGER.log(Level.SEVERE, "Total Services Modified from ProgrammableWeb Site: {0}", finderPW.getModifiedResultsNum());
+            LOGGER.log(Level.SEVERE, "Total Providers Found from ProgrammableWeb Site: {0}", finderPW.getTotalProvidersNum());
+            LOGGER.log(Level.SEVERE, "Total Providers Saved from ProgrammableWeb Site: {0}", finderPW.getSavedProvidersNum());
+            LOGGER.log(Level.SEVERE, "Total Providers Modified from ProgrammableWeb Site: {0}", finderPW.getModifiedProvidersNum());
+            LOGGER.log(Level.SEVERE, "Total Results Found from ProgrammableWeb Site without URL: {0}", finderPW.getWithoutDescriptionUrlNum());
+            LOGGER.log(Level.SEVERE, "Total Results Found from ProgrammableWeb Site without Provider: {0}", finderPW.getWithoutProvidersNum());
         }
+    }
+
+    private static void createNewDB() {
+        try {
+            Configuration configuration = new Configuration();
+            configuration.configure("v3hibernate.cfg.xml");
+            BaseDAO.openSession(configuration);
+            LOGGER.log(Level.INFO, "Database Creation Successful");
+        } finally {
+            BaseDAO.closeSession();
+        }
+    }
+
+    private static boolean createLogFile() {
+        try {
+            StringBuilder sb = new StringBuilder();
+            DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH-mm");
+            Calendar cal = Calendar.getInstance();
+            sb.append(dateFormat.format(cal.getTime()));
+            String filename = sb.toString();
+            DirectoryUtil.createDir("logs");
+            LoggerSetup.setup("logs/" + filename + ".txt", "logs/" + filename + ".html", Level.FINER);
+            return true;
+        } catch (IOException ex) {
+            LOGGER.log(Level.SEVERE, ex.getMessage(), ex);
+            return false;
+        }
+    }
+
+    private static void SearchFromSRXM() throws IOException, DAOException {
+        Configuration configuration = new Configuration();
+        configuration.configure("hibernate.cfg.xml");
+        BaseDAO.openSession(configuration);
+
+        finderSR.start("?offset=0&max=10000");
+        finderXM.start("");
+    }
+
+    private static void SearchFromPW() throws IOException, DAOException {
+        Configuration configuration = new Configuration();
+        configuration.configure("v3hibernate.cfg.xml");
+        BaseDAO.openSession(configuration);
+
+        // Rest
+        String query = "category/all/apis?data_format=21190&order=created&sort=desc";
+        finderPW.start(query, ServiceDescriptionType.REST, 19, 68);
     }
 }
