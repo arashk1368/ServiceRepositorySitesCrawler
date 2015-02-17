@@ -4,6 +4,7 @@
  */
 package cloudservices.brokerage.crawler.servicerepositorysitescrawler.programmableweb;
 
+import cloudservices.brokerage.commons.utils.url_utils.URLExtracter;
 import cloudservices.brokerage.crawler.crawlingcommons.model.DAO.DAOException;
 import cloudservices.brokerage.crawler.crawlingcommons.model.DAO.v3.ServiceDescriptionDAO;
 import cloudservices.brokerage.crawler.crawlingcommons.model.DAO.v3.ServiceProviderDAO;
@@ -165,6 +166,7 @@ public class ServiceFinderFromPW {
             if (!providerUrl.isEmpty()) {
                 ServiceProvider provider = new ServiceProvider(providerUrl);
                 provider.setNumberOfServices(1);
+                provider.setName(URLExtracter.getDomainName(providerUrl));
                 serviceDescription.setServiceProvider(provider);
                 this.totalProvidersNum++;
             } else {
@@ -288,13 +290,13 @@ public class ServiceFinderFromPW {
     private void updateProvider(ServiceDescription serviceDesc, ServiceDescriptionDAO serviceDescDAO, ServiceProviderDAO serviceProviderDAO) throws DAOException {
         ServiceProvider serviceProvider = serviceDesc.getServiceProvider();
 
-        ServiceProvider inDB = serviceProviderDAO.findByUrl(serviceProvider.getUrl());
+        ServiceProvider inDB = serviceProviderDAO.findByName(serviceProvider.getName());
         if (inDB == null) {
-            LOGGER.log(Level.FINE, "There is no service provider in DB with URL = {0}, Saving a new one", serviceProvider.getUrl());
+            LOGGER.log(Level.FINE, "There is no service provider in DB with Name = {0}, Saving a new one", serviceProvider.getName());
             serviceProviderDAO.addServiceProvider(serviceProvider);
             this.savedProvidersNum++;
         } else {
-            LOGGER.log(Level.FINE, "Found the same provider url with ID = {0} in DB, Updating", inDB.getId());
+            LOGGER.log(Level.FINE, "Found the same provider name with ID = {0} in DB, Updating", inDB.getId());
             if (!serviceProvider.getCountry().isEmpty()) {
                 inDB.setCountry(inDB.getCountry().concat(TOKEN).concat(serviceProvider.getCountry()));
             }
@@ -306,10 +308,6 @@ public class ServiceFinderFromPW {
                 inDB.setExtraInfo(inDB.getExtraInfo().concat(TOKEN).concat(serviceProvider.getExtraInfo()));
 
             }
-            if (!serviceProvider.getName().isEmpty()) {
-                inDB.setName(inDB.getName().concat(TOKEN).concat(serviceProvider.getName()));
-
-            }
             if (!serviceProvider.getTags().isEmpty()) {
                 inDB.setTags(inDB.getTags().concat(TOKEN).concat(serviceProvider.getTags()));
 
@@ -318,6 +316,9 @@ public class ServiceFinderFromPW {
             if (serviceDescDAO.findByUrl(serviceDesc.getUrl()) == null) {
                 inDB.setNumberOfServices(inDB.getNumberOfServices() + serviceProvider.getNumberOfServices());
             }
+
+            inDB.setUrl(serviceProvider.getUrl());
+
             serviceProviderDAO.saveOrUpdate(inDB);
             this.modifiedProvidersNum++;
             serviceDesc.setServiceProvider(inDB);
