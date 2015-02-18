@@ -14,6 +14,7 @@ import cloudservices.brokerage.crawler.crawlingcommons.model.enums.v3.ServiceDes
 import cloudservices.brokerage.crawler.crawlingcommons.model.enums.v3.ServiceDescriptionType;
 import cloudservices.brokerage.crawler.servicerepositorysitescrawler.utils.DocumentLoader;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.jsoup.nodes.Document;
@@ -41,6 +42,7 @@ public class ServiceFinderFromPW {
     private final static String TOKEN = ";;;";
     private final static String DOMAIN = "http://www.programmableweb.com/";
     private final static Logger LOGGER = Logger.getLogger(ServiceFinderFromPW.class.getName());
+    private boolean providerAdded;
 
     public ServiceFinderFromPW(long politenessDelay, String userAgent) {
         this.politenessDelay = politenessDelay;
@@ -75,6 +77,7 @@ public class ServiceFinderFromPW {
                         String pageUrl = a.absUrl("href");
                         ServiceDescription serviceDesc = getInfoPage(pageUrl);
                         if (serviceDesc != null) {
+                            providerAdded = false;
                             serviceDesc.setSource("ProgrammableWeb");
                             serviceDesc.setType(type);
                             if (serviceDesc.getServiceProvider() != null) {
@@ -164,11 +167,16 @@ public class ServiceFinderFromPW {
                 return null;
             }
             if (!providerUrl.isEmpty()) {
-                ServiceProvider provider = new ServiceProvider(providerUrl);
-                provider.setNumberOfServices(1);
-                provider.setName(URLExtracter.getDomainName(providerUrl));
-                serviceDescription.setServiceProvider(provider);
-                this.totalProvidersNum++;
+                try {
+                    ServiceProvider provider = new ServiceProvider(providerUrl);
+                    provider.setNumberOfServices(1);
+                    provider.setName(URLExtracter.getDomainName(providerUrl));
+                    serviceDescription.setServiceProvider(provider);
+                    this.totalProvidersNum++;
+                } catch (URISyntaxException ex) {
+                    LOGGER.log(Level.INFO, "Info page for page = {0} contains a wrong provider url", pageUrl);
+                }
+
             } else {
                 LOGGER.log(Level.INFO, "Info page for page = {0} does not contain provider url", pageUrl);
             }
@@ -280,6 +288,19 @@ public class ServiceFinderFromPW {
                 inDB.setUpdated(true);
             }
 
+            // service exists but without provider
+            if (inDB.getServiceProvider() == null && sd.getServiceProvider() != null) {
+                ServiceProvider sp = sd.getServiceProvider();
+                LOGGER.log(Level.FINER, "Service Provider Updated to ", sp.getName());
+                // service exists, provider exists
+                if (!providerAdded) {
+                    sp.setNumberOfServices(sp.getNumberOfServices() + 1);
+                    serviceProviderDAO.saveOrUpdate(sp);
+                }
+                inDB.setServiceProvider(sp);
+                inDB.setUpdated(true);
+            }
+
             if (inDB.isUpdated()) {
                 sdDAO.saveOrUpdate(inDB);
                 this.modifiedResultsNum++;
@@ -294,6 +315,8 @@ public class ServiceFinderFromPW {
         if (inDB == null) {
             LOGGER.log(Level.FINE, "There is no service provider in DB with Name = {0}, Saving a new one", serviceProvider.getName());
             serviceProviderDAO.addServiceProvider(serviceProvider);
+            serviceDesc.setServiceProvider(serviceProvider);
+            providerAdded = true;
             this.savedProvidersNum++;
         } else {
             LOGGER.log(Level.FINE, "Found the same provider name with ID = {0} in DB, Updating", inDB.getId());

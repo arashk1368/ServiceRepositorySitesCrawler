@@ -23,9 +23,9 @@ import org.hibernate.cfg.Configuration;
 public class App {
 
     private final static Logger LOGGER = Logger.getLogger(App.class.getName());
-    private final static String USER_AGENT = "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36"
-            + " (KHTML, like Gecko) Chrome/41.0.2227.0 Safari/537.36";
-    private final static long POLITENESS_DELAY = 500; //ms
+    private final static String USER_AGENT = "Mozilla/5.0 (Windows NT 6.3; rv:36.0)"
+            + " Gecko/20100101 Firefox/36.0";
+    private final static long POLITENESS_DELAY = 1000; //ms
     private static WSDLFinderFromXM finderXM;
     private static WSDLFinderFromSR finderSR;
     private static ServiceFinderFromPW finderPW;
@@ -108,8 +108,15 @@ public class App {
         configuration.configure("v3hibernate.cfg.xml");
         BaseDAO.openSession(configuration);
 
+        String query;
+        
         // Rest
-        String query = "category/all/apis?data_format=21190&order=created&sort=desc";
-        finderPW.start(query, ServiceDescriptionType.REST, 19, 68);
+//        query = "category/all/apis?data_format=21190&order=created&sort=desc";
+//        finderPW.start(query, ServiceDescriptionType.REST, 0, 1);
+
+        // WSDL
+        // YOU SHOULD NOT USE THIS BECAUSE ENDPOINT IS THE URL!
+        query = "category/all/apis?data_format=21183&order=created&sort=desc";
+        finderPW.start(query, ServiceDescriptionType.WSDL, 0, 1);
     }
 }
